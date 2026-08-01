@@ -16,3 +16,4 @@ DebugConfig/
 *.iex
 *.exe
 *.out
+.vscode/
