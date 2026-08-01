@@ -5,7 +5,7 @@
  */
 
 #include "stm32f10x.h"                  // STM32F10x 标准外设库
-#include "delay.h"                      // 软件延时函数 delay_ms()
+#include "Delay.h"                      // 软件延时函数 Delay_ms()
 
 /* 硬件映射 */
 #define LED_PORT            GPIOA
@@ -36,8 +36,8 @@ int main(void)
     while (1)
     {
         GPIO_SetBits(LED_PORT, LED_PIN);       // 点亮
-        delay_ms(BLINK_PERIOD_MS);
+        Delay_ms(BLINK_PERIOD_MS);
         GPIO_ResetBits(LED_PORT, LED_PIN);     // 熄灭
-        delay_ms(BLINK_PERIOD_MS);
+        Delay_ms(BLINK_PERIOD_MS);
     }
 }
