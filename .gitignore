@@ -1,0 +1,16 @@
+# Keil 编译产物
+Objects/
+Listings/
+DebugConfig/
+*.uvguix.*
+*.uvoptx
+*.crf
+*.d
+*.dep
+*.o
+*.axf
+*.hex
+*.htm
+*.map
+*.lnp
+*.iex
