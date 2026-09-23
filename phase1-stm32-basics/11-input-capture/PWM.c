@@ -1,0 +1,54 @@
+#include "stm32f10x.h"                  // Device header
+
+
+void PWM_Init(void)
+{
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitSturcture;
+	GPIO_InitSturcture.GPIO_Mode=GPIO_Mode_AF_PP;
+	GPIO_InitSturcture.GPIO_Pin=GPIO_Pin_0;
+	GPIO_InitSturcture.GPIO_Speed=GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitSturcture);
+	
+	TIM_InternalClockConfig(TIM2);
+	
+	TIM_TimeBaseInitTypeDef Tim_InitStructure;
+	Tim_InitStructure.TIM_ClockDivision=TIM_CKD_DIV1;
+	Tim_InitStructure.TIM_CounterMode=TIM_CounterMode_Up;
+	Tim_InitStructure.TIM_Period=100 - 1;
+	Tim_InitStructure.TIM_Prescaler=720 -1;
+	Tim_InitStructure.TIM_RepetitionCounter=0;
+	
+	TIM_TimeBaseInit(TIM2,&Tim_InitStructure);
+	
+	TIM_OCInitTypeDef Tim_OCInitStructure;
+	TIM_OCStructInit(&Tim_OCInitStructure);			//结构体所有的值默认初始化
+	
+	
+	Tim_OCInitStructure.TIM_OCMode=TIM_OCMode_PWM1;		//PWM1模式
+	Tim_OCInitStructure.TIM_OCPolarity=TIM_OCPolarity_High;				//极性为高电平
+	Tim_OCInitStructure.TIM_OutputState=TIM_OutputState_Enable;
+	Tim_OCInitStructure.TIM_Pulse=0x0000;			//CCR
+	TIM_OC1Init(TIM2, &Tim_OCInitStructure);
+	
+	TIM_Cmd(TIM2, ENABLE);
+	
+}
+
+//通过Compare1 改变占空比
+	void PWM_SetCompare1(uint16_t Compare)
+	{
+		TIM_SetCompare1(TIM2, Compare);
+	}
+
+	/*
+	为什么修改的PSC,而不是ARR，PWM频率==更新频率==72/（PSC +1)/(ARR +1)
+	练习计算频率
+	*/
+	
+	 void PWM_SetPrescaler(uint16_t Prescaler)
+	 { 
+		 TIM_PrescalerConfig(TIM2, Prescaler, TIM_PSCReloadMode_Immediate);		//立刻生效和更新事件生效，这里选择立刻生效
+	 }
