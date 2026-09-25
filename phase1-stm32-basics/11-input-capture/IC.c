@@ -54,7 +54,9 @@ void IC_PWMI_Init(void)
 	TIM_ICInit(TIM3,&TIM_ICInitStructure);
 	
 	
-	// TIM_PWMIConfig(TIM3, &TIM_ICInitStructure);				//自动配置PWMI，相当于上面注释掉的代码
+	/* 也可以用 TIM_PWMIConfig(TIM3, &结构体) 一行配好 TI1+TI2 —— 它按通道1的极性/路径自动推出通道2。
+	   但它会把通道1也重配一遍，做不到"只给通道2加配置"；所以这里手写通道2，
+	   保持 6-6 测频率 / 6-7 测占空比 解耦。 */
 }
 
 uint32_t IC_GetFreq(void)
