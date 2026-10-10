@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "OLED.h"
 
 /* USER CODE END Includes */
 
@@ -44,6 +45,8 @@ ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
 /* USER CODE BEGIN PV */
+uint16_t adc_buf[4];
+float   vol[4];
 
 /* USER CODE END PV */
 
@@ -93,16 +96,29 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+OLED_Init();
+OLED_ShowString(1, 1, "OLED OK");
 
+HAL_ADCEx_Calibration_Start(&hadc1);
+HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buf, 4);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  OLED_ShowString(1, 1, "AD0:");
+  OLED_ShowString(2, 1, "AD1:");
+  OLED_ShowString(3, 1, "AD2:");
+  OLED_ShowString(4, 1, "AD3:");
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+       for(uint8_t i = 0; i< 4; i++)
+      {
+      vol[i] = adc_buf[i] / 4095.0f * 3.3f;
+      OLED_ShowNum(i + 1, 5, adc_buf[i], 4);
+      }
   }
   /* USER CODE END 3 */
 }
