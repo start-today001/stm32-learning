@@ -1,6 +1,7 @@
 #ifndef __SERIAL__H
 #define __SERIAL__H
 
+#include <stdio.h>
 
 void Serial_Init(void);
 void Serial_SendByte(uint8_t Byte);

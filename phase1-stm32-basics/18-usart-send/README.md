@@ -1,7 +1,9 @@
 # 9-1 串口发送
 
 > 江科大 STM32 入门教程 · 第 9 章 USART 串口通信 · 第 1 集（发送部分）
-> 本工程只做**发送**（`USART_Mode_Tx`）；接收在 9-2 补上。
+> 本工程只做**发送**（`USART_Mode_Tx`）；接收在 9-2（`19-usart-rx`）补上。
+>
+> **后续补充（2026-10-14）**：加上 `fputc` 重定向，可以用 `printf` 打印 —— 见「学习点 6」。
 
 ## 硬件
 - MCU: STM32F103C8T6
@@ -22,7 +24,8 @@
 | `Serial_SendString(char *String)` | 发送**一个字符串**（以 `\0` 结尾） |
 | `Serial_SendNumber(uint32_t Number, uint8_t Length)` | 发送**一个数字**（按十进制逐位拆成字符） |
 
-- `main.c` 实际调用：`Serial_SendNumber(12345, 5)` → 串口助手显示 `12345`
+- 另提供 **`printf` 重定向**（自己实现 `fputc`）→ 可以直接 `printf("Num = %d\r\n", 666)`，串口助手显示 `Num = 666`
+- `main.c` 当前实际调用：`printf("Num = %d\r\n", 666)`；之前的 `Serial_SendNumber(12345, 5)` 等测试调用保留为注释
 
 ## 学习点
 
@@ -69,6 +72,37 @@ Number / Serial_Pow(10, Length - 1 - i) % 10 + '0'
 - `1` = 1 位停止位（`USART_StopBits_1`）
 - 加上起始位，实际每传 1 字节要 10 bit → **约 960 字节/秒**
 - **串口助手必须设成一样的参数**，否则全是乱码
+
+### 6. `printf` 重定向：实现 `fputc`，并且**必须勾选 Use MicroLIB**
+
+**原理**：`printf` 最后总要落到"把某一个字节输出出去"这一步。ARM Compiler 5 的 C 库在这一步调用 **`fputc`** —— 所以**只要自己实现一个 `fputc`，`printf` 的输出就全走你的函数**了。
+
+```c
+/* Serial.c */
+#include <stdio.h>
+
+int fputc(int ch, FILE *f)
+{
+    Serial_SendByte(ch);      /* 复用已有的单字节发送 */
+    return ch;                /* 返回写出的字符（不是 EOF） */
+}
+```
+```c
+/* main.c */
+printf("Num = %d\r\n", 666);
+```
+
+**验证过的调用链**（从 `Listings/prjoct.map` 里读出来的）：
+```
+main.o(i.main) → printf1.o(__2printf) → printfb.o(_printf_core) → serial.o(i.fputc) → Serial_SendByte
+../clib/microlib/...        ← MicroLIB 确实在生效（map 里出现 39 处）
+```
+
+- ⚠️ **前提：`Options for Target → Target → Use MicroLIB` 必须勾选。**
+  不勾选的话，用的是标准 C 库 —— 它的 `printf` 会牵扯到 **semihosting（半主机）**：库函数通过 `BKPT` 指令向调试器索要 I/O。**没接调试器时，程序会卡在里面出不来**（看起来就是"printf 不输出而且死机"）
+- ⚠️ **MicroLIB 的 `printf` 不支持 `%f`（浮点）**。`%d / %u / %x / %c / %s` 都支持；要用浮点打印得另做处理
+- ⚠️ **换行要发 `\r\n` 而不是只发 `\n`**：串口助手（以及很多终端）只认 `\r` 才是"回到行首"，只给 `\n` 会一直往右跑
+- 💡 `Serial.h` 里也写了 `#include <stdio.h>` —— 这样**别的 .c 文件包含 Serial.h 后就能直接用 `printf`**（`FILE` 类型需要它）
 
 ## 调试记录（本工程上传前修改了 3 处）
 
@@ -125,13 +159,14 @@ PC 仿真实测（`main.c` 调用的 `Serial_SendNumber(12345, 5)`）：
 - **`Serial_Pow()` 是内部辅助函数，却在 `Serial.h` 里导出**：它只为 `Serial_SendNumber` 服务，本可以写成 `static`（或干脆不放进头文件）。
   另外它用 `uint32_t y` 当"次数"参形，**传负数会翻成 43 亿**（见调试记录修 1）—— 这是这类"无符号当次数"写法的通用陷阱
 - **`Serial.h` 的保护宏是 `__SERIAL__H`**：双下划线开头属 C 标准的保留标识符；本仓库其他文件用 `__XXX_H` 是全仓库通病
-- **`main.c` 里前 3 个测试调用被注释掉了**：`Serial_SendByte(0x41)`、`Serial_SendArray`、`Serial_SendString` 都留着注释，当前只跑 `Serial_SendNumber(12345, 5)`。这是逐步测试的痕迹，不是死代码
+- **`main.c` 里前面的测试调用都被注释掉了**：`Serial_SendByte(0x41)`、`Serial_SendArray`、`Serial_SendString`、`Serial_SendNumber(12345, 5)` 都留着注释，当前只跑 `printf("Num = %d\r\n", 666)`。这是逐步测试的痕迹，不是死代码
+- **`main.c` 里 `MyArray` 那两行注释已不能直接取消注释**：原本是 `// uint8_t MyArray[] = {0x41,0x42,0x43,0x44};`，2026-10-14 编辑时 `uint8_t` 被删掉了，现在是 `// MyArray[] = {...};` —— 残缺的注释代码，无编译影响
 - **`KEY.c/h`、`LED.c/h` 未被任何文件引用**，未纳入仓库（只传工程实际用到的文件）
 - **`EventRecorderStub.scvd` / `DebugConfig/` / `Objects/` / `Listings/`** 是 Keil 生成的调试与编译产物，未纳入
 
 ## 文件
-- `main.c` — 主程序（调用 `Serial_SendNumber(12345, 5)`）
-- **`Serial.c / Serial.h`** — ★ 本工程核心：串口初始化 + 4 个发送函数
+- `main.c` — 主程序（调用 `printf("Num = %d\r\n", 666)`）
+- **`Serial.c / Serial.h`** — ★ 本工程核心：串口初始化 + 4 个发送函数 + **`fputc` 重定向**
 - `OLED.c / OLED.h / OLED_Font.h` — OLED 驱动（教程提供，软件 I2C 位时序 + 字库）
 - `Delay.c / Delay.h` — 软件延时（复用 3-x）
 - `stm32f10x_it.c / stm32f10x_conf.h` — 工程模板（中断向量 + 库配置）

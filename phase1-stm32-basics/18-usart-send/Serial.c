@@ -1,5 +1,5 @@
 #include "stm32f10x.h"                  // Device header
-
+#include <stdio.h>
 
 void Serial_Init(void)
 {
@@ -79,4 +79,10 @@ void Serial_SendNumber(uint32_t Number, uint8_t Length)
     {
         Serial_SendByte(Number / Serial_Pow(10, Length - 1 - i) %10 + '0');
     }
+}
+
+int fputc(int ch, FILE *f)
+{
+    Serial_SendByte(ch);
+    return ch;
 }
