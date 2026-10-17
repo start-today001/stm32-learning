@@ -6,8 +6,6 @@
 ## 目录结构
 
 ```
-├── phase1-c-basics/       ← C 语言基础练习
-│   └── 01-pointer-practice/  ← 指针练习
 ├── phase1-stm32-basics/   ← STM32 基础外设（标准库：3-1 ~ 6-8 + 自制练习）
 │   └── 01-gpio-led/       ← GPIO 点灯
 ├── phase2-hal/            ← HAL 库 + CubeMX（计划书 W11 起的新内容）
